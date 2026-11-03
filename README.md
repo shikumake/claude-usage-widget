@@ -33,6 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/shikumake/claude-usage-widget/main/
 2. ホーム画面を長押し →「編集」→「ウィジェットを追加」→「Scriptable」→ 好きなサイズを追加します。
 3. 置いたウィジェットを長押し →「ウィジェットを編集」→ Script で「**Claude Usage**」を選びます。
    - Parameter に「残り」と入れると、残りの％で表示します（空欄なら使用量）。
+   - Parameter に「ダーク」または「ライト」と入れると、iPhone の設定に関係なくその色で表示します（空欄なら iPhone のライト／ダークに自動で合わせます）。「残り ダーク」のように組み合わせもできます。
    - ロック画面（長方形・円形）にも置けます。
 
 ### 3. 自動更新を設定する（おすすめ）

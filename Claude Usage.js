@@ -4,13 +4,31 @@
 
 // Claude 使用量 & Claude Code 稼働状況ウィジェット
 // データ: iCloud Drive/Scriptable/claude-status.json（Macが5分おきに更新）
-// ウィジェットのパラメータに「残り」と入れると、使用率ではなく残り％で表示します。
+// ウィジェットの Parameter（空白区切りで組み合わせ可）:
+//   残り   … 使用率ではなく残り％で表示
+//   ダーク … iPhone の設定に関係なく暗い色で表示
+//   ライト … iPhone の設定に関係なく明るい色で表示
+//   （どちらも書かなければ、iPhone のライト／ダークに自動で合わせる）
+
+const param = (args.widgetParameter || "").trim();
+const lower = param.toLowerCase();
+const REMAIN = param.includes("残り") || lower.includes("remain");
+const THEME = (param.includes("ダーク") || lower.includes("dark")) ? "dark"
+  : (param.includes("ライト") || lower.includes("light")) ? "light" : "auto";
+
+// THEME に合わせて色を選ぶ（auto のときは iPhone の設定に合わせて自動で切り替わる色）
+function themed(light, dark) {
+  if (THEME === "dark") return new Color(dark);
+  if (THEME === "light") return new Color(light);
+  return Color.dynamic(new Color(light), new Color(dark));
+}
 
 const ACCENT = new Color("#D97757");
-const BG = Color.dynamic(new Color("#F5F4EE"), new Color("#262624"));
-const FG = Color.dynamic(new Color("#1F1E1D"), new Color("#F5F4EE"));
-const SUB = Color.dynamic(new Color("#6B6A65"), new Color("#A3A29C"));
-const TRACK = Color.dynamic(new Color("#E3E1D8"), new Color("#3A3936"));
+const BG = themed("#F5F4EE", "#262624");
+const FG = themed("#1F1E1D", "#F5F4EE");
+const SUB = themed("#6B6A65", "#A3A29C");
+// バーの下地は画像として描くため自動切り替えが効かない。どちらの背景でも馴染む半透明の灰色にする
+const TRACK = THEME === "dark" ? new Color("#3A3936") : THEME === "light" ? new Color("#E3E1D8") : new Color("#8E8C84", 0.28);
 const WARN = new Color("#E5484D");
 const STATUS = {
   working: { ja: "作業中", color: new Color("#3FB950") },
@@ -20,8 +38,6 @@ const STATUS = {
   unknown: { ja: "不明", color: new Color("#8B949E") },
 };
 
-const param = (args.widgetParameter || "").trim();
-const REMAIN = param.includes("残り") || param.toLowerCase().includes("remain");
 
 let loadError = "";
 
