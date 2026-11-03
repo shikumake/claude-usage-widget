@@ -91,4 +91,4 @@ Claude Code の設定は元に戻ります。iPhone の Scriptable にある「C
 ## ライセンス
 [MIT License](LICENSE)
 
-作者：シクメイク（[X](https://x.com/shikumake) / [note](https://note.com/shikumake)）
+作者：シクメイク（[X](https://x.com/shiku_make) / [note](https://note.com/shikumake)）
