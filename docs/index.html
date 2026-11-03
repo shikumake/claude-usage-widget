@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Claude 使用量ウィジェット 導入ガイド｜シクメイク</title>
+<meta name="description" content="Claude（Pro/Max）の使用量と Claude Code の稼働状況を iPhone / Mac のウィジェットに表示する非公式ツールの導入ガイド">
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    --bg: #FFF9F5;
+    --surface: #FFFFFF;
+    --text: #18213B;
+    --sub: #5B6275;
+    --line: #EBE3DC;
+    --accent: #FF7A4D;
+    --accent-soft: #FFE9DF;
+    --navy: #18213B;
+    --code-bg: #18213B;
+    --code-text: #FFFFFF;
+    --warn-bg: #FFF4E5;
+    --warn-line: #F5C27A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11182B;
+      --surface: #18213B;
+      --text: #F3F1EC;
+      --sub: #A9AFBF;
+      --line: #2A3452;
+      --accent-soft: #3A2B2A;
+      --code-bg: #0B1020;
+      --warn-bg: #2E2718;
+      --warn-line: #7A5A26;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 0 16px 64px; }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 28px 0 32px;
+  }
+  header .wrap { padding-bottom: 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 14px; opacity: .9; }
+  .brand img { width: 32px; height: 32px; border-radius: 50%; }
+  h1 { font-size: 26px; line-height: 1.4; margin: 16px 0 8px; letter-spacing: .02em; }
+  .lead { margin: 0; color: #D8DCE6; font-size: 15px; }
+  .badge {
+    display: inline-block; margin-top: 14px; padding: 2px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.12); font-size: 12px;
+  }
+  h2 {
+    font-size: 20px; margin: 44px 0 12px; padding-left: 12px;
+    border-left: 4px solid var(--accent); line-height: 1.4;
+  }
+  h3 { font-size: 17px; margin: 28px 0 8px; }
+  p { margin: 8px 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 18px; margin: 14px 0;
+  }
+  .features { display: grid; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+  .features li {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  }
+  .features b { display: block; }
+  .features span { color: var(--sub); font-size: 14px; }
+  .checklist { list-style: none; padding: 0; margin: 8px 0; }
+  .checklist li { padding: 6px 0 6px 30px; position: relative; border-bottom: 1px dashed var(--line); }
+  .checklist li:last-child { border-bottom: 0; }
+  .checklist li::before {
+    content: ""; position: absolute; left: 2px; top: 12px; width: 16px; height: 16px;
+    border: 2px solid var(--accent); border-radius: 4px;
+  }
+  .step { display: flex; align-items: center; gap: 10px; margin: 44px 0 6px; }
+  .step .num {
+    flex: none; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .step h2 { margin: 0; padding: 0; border: 0; }
+  .where { color: var(--sub); font-size: 14px; margin: 0 0 8px 44px; }
+  ol.do { padding-left: 1.4em; margin: 8px 0; }
+  ol.do li { margin: 6px 0; }
+  .cmd { position: relative; margin: 12px 0; }
+  .cmd pre {
+    margin: 0; background: var(--code-bg); color: var(--code-text);
+    border-radius: 12px; padding: 14px 16px 52px; font-size: 13px; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .cmd button {
+    position: absolute; right: 10px; bottom: 10px;
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    padding: 8px 14px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .cmd button.done { background: #2EA043; }
+  code {
+    background: var(--accent-soft); padding: 1px 6px; border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em;
+  }
+  .note {
+    background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 12px;
+    padding: 12px 14px; margin: 14px 0; font-size: 15px;
+  }
+  .note b { display: block; margin-bottom: 2px; }
+  .tip { background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; margin: 14px 0; font-size: 15px; }
+  details {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    margin: 10px 0; padding: 0 14px;
+  }
+  summary { cursor: pointer; padding: 12px 0; font-weight: 700; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "＋"; color: var(--accent); margin-right: 8px; }
+  details[open] summary::before { content: "－"; }
+  details > div { padding-bottom: 12px; }
+  a { color: var(--accent); }
+  footer { color: var(--sub); font-size: 13px; margin-top: 56px; border-top: 1px solid var(--line); padding-top: 18px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand"><img src="icon.png" alt="">シクメイク｜AIで仕組みを作る</div>
+    <h1>Claude 使用量ウィジェット<br>導入ガイド</h1>
+    <p class="lead">Claude の使用量と Claude Code の状態を、iPhone のホーム画面とロック画面でいつでも確認できます。</p>
+    <span class="badge">LINE 友だち限定ページ</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h2>できること</h2>
+  <ul class="features">
+    <li><b>使用量がひと目で分かる</b><span>5時間・週間・Fable 週などの使用率と、リセットまでの時間</span></li>
+    <li><b>Claude Code の様子が分かる</b><span>作業中／入力待ち／完了を、席を離れていても確認</span></li>
+    <li><b>ホーム画面にもロック画面にも</b><span>小・中・大サイズとロック画面に対応。Mac のデスクトップにも置けます</span></li>
+  </ul>
+
+  <h2>用意するもの</h2>
+  <div class="card">
+    <ul class="checklist">
+      <li>Mac と iPhone</li>
+      <li>Claude の Pro または Max プラン</li>
+      <li>iPhone アプリ「<a href="https://apps.apple.com/app/scriptable/id1405459188">Scriptable</a>」（無料）</li>
+      <li>Mac と iPhone の <b>iCloud Drive がオン</b>になっていること</li>
+    </ul>
+  </div>
+  <p>所要時間は 10 分ほどです。</p>
+
+  <!-- STEP 1 -->
+  <div class="step"><span class="num">1</span><h2>事前準備</h2></div>
+  <p class="where">iPhone と Mac で</p>
+
+  <h3>iCloud Drive をオンにする</h3>
+  <ol class="do">
+    <li><b>iPhone</b>：「設定」→ いちばん上の自分の名前 →「iCloud」→「<b>iCloud Drive</b>」をオン</li>
+    <li><b>Mac</b>：画面左上の  →「システム設定」→ 自分の名前 →「iCloud」→「<b>iCloud Drive</b>」をオン</li>
+  </ol>
+
+  <h3>Scriptable を入れて、一度開く</h3>
+  <ol class="do">
+    <li>App Store で「<a href="https://apps.apple.com/app/scriptable/id1405459188">Scriptable</a>」を入れます。</li>
+    <li>一度開いて閉じます。これで Mac とつながるフォルダが作られます。</li>
+  </ol>
+  <div class="tip">iCloud Drive の設定画面で「同期しているアプリ」の一覧がなかなか表示されなくても、そのまま進めて大丈夫です。</div>
+
+  <!-- STEP 2 -->
+  <div class="step"><span class="num">2</span><h2>Mac でインストール</h2></div>
+  <p class="where">Mac で</p>
+
+  <ol class="do">
+    <li><b>ターミナル</b>を開きます。<br><code>⌘ command</code> ＋ <code>スペース</code> を押して「ターミナル」と入力し、<code>return</code> キーを押します。</li>
+    <li>下のコマンドを<b>コピー</b>して、ターミナルに貼り付け（<code>⌘ command</code> ＋ <code>V</code>）、<code>return</code> キーを押します。</li>
+  </ol>
+
+  <div class="cmd">
+    <pre id="install">curl -fsSL https://raw.githubusercontent.com/shikumake/claude-usage-widget/main/install.sh | bash</pre>
+    <button type="button" data-copy="install">コピー</button>
+  </div>
+
+  <ol class="do" start="3">
+    <li>「キーチェーン」の確認が出たら、Mac のパスワードを入れて「<b>常に許可</b>」を押します。</li>
+    <li>最後に「5時間: ○%　週間: ○%」と表示されれば成功です。</li>
+    <li>Claude Code を使っている途中なら、一度終了して起動し直します。</li>
+  </ol>
+
+  <div class="note">
+    <b>「Claude Code のログイン情報がキーチェーンにありません」と出たら</b>
+    Claude のデスクトップアプリだけを使っている場合に出ます。ターミナルで下の2つを順に実行し、起動した画面で「Claude account with subscription」を選んでログインしてください。ログインできたら <code>/exit</code> で閉じ、もう一度インストールのコマンドを実行します。
+  </div>
+  <div class="cmd">
+    <pre id="cli">curl -fsSL https://claude.ai/install.sh | bash</pre>
+    <button type="button" data-copy="cli">コピー</button>
+  </div>
+  <div class="cmd">
+    <pre id="login">~/.local/bin/claude</pre>
+    <button type="button" data-copy="login">コピー</button>
+  </div>
+
+  <div class="tip"><b>Claude Code に任せる方法</b><br>Claude Code に「https://github.com/shikumake/claude-usage-widget の README を読んでインストールして」と頼むと、インストールからエラーへの対応まで進めてくれます。</div>
+
+  <!-- STEP 3 -->
+  <div class="step"><span class="num">3</span><h2>iPhone にウィジェットを置く</h2></div>
+  <p class="where">iPhone で</p>
+
+  <ol class="do">
+    <li><b>Scriptable</b> を開き、一覧の「<b>Claude Usage</b>」をタップします。使用量が表示されれば準備完了です。<br><span style="color:var(--sub);font-size:14px">（一覧にないときは、数分待ってから開き直してください）</span></li>
+    <li>ホーム画面の空いているところを長押し →「<b>編集</b>」→「<b>ウィジェットを追加</b>」→「<b>Scriptable</b>」→ 好きなサイズを追加します。中サイズがおすすめです。</li>
+    <li>置いたウィジェットを長押し →「<b>ウィジェットを編集</b>」→「Script」で「<b>Claude Usage</b>」を選びます。</li>
+  </ol>
+  <div class="tip">
+    「Parameter」に入れる言葉で表示を変えられます（空白で区切って組み合わせ可。例：<code>残り ダーク</code>）。
+    <ul style="margin:6px 0 0;padding-left:1.2em">
+      <li><code>残り</code>：使った％ではなく<b>残りの％</b>で表示</li>
+      <li><code>ダーク</code>／<code>ライト</code>：iPhone の設定に関係なく、その色で表示（空欄なら iPhone のライト／ダークに自動で合わせます）</li>
+    </ul>
+  </div>
+
+  <h3>ロック画面にも置く（お好みで）</h3>
+  <ol class="do">
+    <li>ロック画面を長押し →「<b>カスタマイズ</b>」→「ロック画面」を選びます。</li>
+    <li>時計の下のウィジェット欄をタップし、「Scriptable」の長方形を追加します。</li>
+    <li>追加したウィジェットをタップして、Script に「<b>Claude Usage</b>」を選びます。</li>
+  </ol>
+  <p style="color:var(--sub);font-size:14px">ロック画面のウィジェットは、iOS の仕様で横幅の半分までの大きさです。</p>
+
+  <!-- STEP 4 -->
+  <div class="step"><span class="num">4</span><h2>自動更新を設定する（おすすめ）</h2></div>
+  <p class="where">iPhone の「ショートカット」アプリで</p>
+  <p>ホーム画面のウィジェットは、iOS の都合で新しいデータを取り込めず、古い表示のままになることがあります。よく開くアプリを開いたときに裏でデータを取り込むようにしておくと、いつも新しい表示になります。</p>
+  <ol class="do">
+    <li>「ショートカット」アプリの「<b>オートメーション</b>」→「<b>＋</b>」をタップします。</li>
+    <li>説明の入力欄が出たら、次の文を入力します。<br>
+      <span style="color:var(--sub);font-size:14px">（説明の入力欄が出ない場合は、きっかけに「App」を選び、よく開くアプリの「開いている」を選びます）</span>
+      <div class="cmd"><pre id="auto">LINE、X、Safari のどれかを開いたときに実行するオートメーションを作って</pre><button type="button" data-copy="auto">コピー</button></div>
+    </li>
+    <li>できたら右上の「<b>編集</b>」を押し、アクションの検索で「<b>Scriptable</b>」と入力して「<b>Run Script</b>」を追加します。</li>
+    <li>Script に「<b>Claude Usage</b>」を選び、「<b>Run In App</b>」と「<b>実行時に表示</b>」を<b>オフ</b>にします。</li>
+    <li>きっかけの右の「＞」から、「<b>すぐに実行</b>」を選び、「実行時に通知」を<b>オフ</b>にします。</li>
+  </ol>
+  <div class="tip">LINE・X・Safari の部分は、毎日よく開くアプリに変えてかまいません。設定後は、それらのアプリを開くたびに裏でデータが新しくなります。</div>
+
+  <h2>これで完了です</h2>
+  <div class="card">
+    <p>Mac が起きている間は、5分おきに使用量を更新します。Claude Code の状態はすぐに反映されます。</p>
+    <p>iPhone のウィジェットは iOS の都合で十数分おきくらいに更新されます。Mac がスリープ中は更新が止まり、データが古くなると右上に最終更新の時刻が赤字で出ます。</p>
+  </div>
+
+  <h2>困ったとき</h2>
+  <details>
+    <summary>ウィジェットに「データがまだありません」と出る</summary>
+    <div>Scriptable アプリで「Claude Usage」を一度タップして実行します。そのあとホーム画面のウィジェットを長押しして削除し、もう一度追加してください。</div>
+  </details>
+  <details>
+    <summary>「Scriptable の iCloud フォルダがまだありません」と出る</summary>
+    <div>Mac と iPhone の iCloud Drive がオンになっているか確認し、iPhone で Scriptable を一度開いてから、インストールのコマンドをもう一度実行してください。フォルダが Mac に届くまで数分かかることがあります。</div>
+  </details>
+  <details>
+    <summary>「ログイン情報の期限切れ」と出る</summary>
+    <div>通常は自動で更新されます。続く場合は、ターミナルで <code>~/.local/bin/claude</code> を実行して起動し、<code>/exit</code> で閉じてください。</div>
+  </details>
+  <details>
+    <summary>数値がずっと変わらない・右上に赤字で「更新 ○:○○」と出る</summary>
+    <div>Mac がスリープ中は更新されません。Mac が起きているのに古いままなら、Scriptable アプリを一度開くと新しくなります。毎回開かなくて済むように、STEP 4 の自動更新を設定してください。</div>
+  </details>
+  <details>
+    <summary>今の状態を確認したい</summary>
+    <div>ターミナルで次を実行すると、取得した使用量と記録中のセッションが表示されます。
+      <div class="cmd"><pre id="show">python3 ~/.claude-widget/claude_widget.py show</pre><button type="button" data-copy="show">コピー</button></div>
+    </div>
+  </details>
+
+  <h2>やめたいとき</h2>
+  <p>ターミナルで次を実行すると、Mac の設定がすべて元に戻ります。iPhone の Scriptable にある「Claude Usage」は手動で削除してください。</p>
+  <div class="cmd">
+    <pre id="uninstall">curl -fsSL https://raw.githubusercontent.com/shikumake/claude-usage-widget/main/uninstall.sh | bash</pre>
+    <button type="button" data-copy="uninstall">コピー</button>
+  </div>
+
+  <h2>安全性について</h2>
+  <div class="card">
+    <ul style="margin:0;padding-left:1.2em">
+      <li>Claude のログイン情報は、Mac のキーチェーンから<b>読むだけ</b>です。</li>
+      <li>通信先は Anthropic（<code>api.anthropic.com</code>）<b>だけ</b>です。ほかのサーバーには何も送りません。</li>
+      <li>iCloud に保存するのは、使用率・リセット時刻・プロジェクト名・稼働状況だけです。</li>
+      <li>コードはすべて <a href="https://github.com/shikumake/claude-usage-widget">GitHub</a> で公開しています。</li>
+    </ul>
+  </div>
+  <div class="note">
+    <b>非公式ツールです</b>
+    Anthropic とは関係ありません。使用量の取得に公開されていない仕組みを使っているため、仕様変更で動かなくなることがあります。動かなくなったときは、LINE でお知らせします。ご利用は自己責任でお願いします。
+  </div>
+
+  <footer>
+    <p>作成：シクメイク（<a href="https://x.com/shikumake">X</a> ／ <a href="https://note.com/shikumake">note</a> ／ <a href="https://github.com/shikumake">GitHub</a>）</p>
+    <p>アップデートや新しいツールは、LINE でお知らせします。</p>
+  </footer>
+</main>
+
+<script>
+  document.querySelectorAll("[data-copy]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = document.getElementById(btn.dataset.copy).textContent;
+      var done = function () {
+        btn.textContent = "コピーしました";
+        btn.classList.add("done");
+        setTimeout(function () { btn.textContent = "コピー"; btn.classList.remove("done"); }, 1800);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); });
+      } else { fallback(text); done(); }
+    });
+  });
+  function fallback(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+</script>
+</body>
+</html>
