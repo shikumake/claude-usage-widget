@@ -126,6 +126,9 @@
   details[open] summary::before { content: "－"; }
   details > div { padding-bottom: 12px; }
   a { color: var(--accent); }
+  .shot { margin: 14px 0 18px; }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); }
+  .shot figcaption { color: var(--sub); font-size: 13px; text-align: center; margin-top: 6px; }
   footer { color: var(--sub); font-size: 13px; margin-top: 56px; border-top: 1px solid var(--line); padding-top: 18px; }
 </style>
 </head>
@@ -140,6 +143,16 @@
 </header>
 
 <main class="wrap">
+
+  <h2>完成イメージ</h2>
+  <figure class="shot">
+    <img src="img/showcase-medium.jpg" alt="中サイズのウィジェット。明るい色と暗い色の2種類。5時間・週間の使用率とリセットまでの時間、Claude Code の状態を表示" width="1400" height="371" loading="eager">
+    <figcaption>中サイズ（左：明るい色／右：暗い色）</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="img/showcase-large.jpg" alt="大サイズのウィジェット。Fable 週の使用率と、Claude Code のプロジェクトごとの状態も表示" width="1400" height="751" loading="lazy">
+    <figcaption>大サイズ（Fable 週など、ほかの上限とプロジェクトごとの状態も表示）</figcaption>
+  </figure>
 
   <h2>できること</h2>
   <ul class="features">
