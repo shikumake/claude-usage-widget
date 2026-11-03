@@ -227,14 +227,79 @@ def export(state):
         counts[s["status"]] = counts.get(s["status"], 0) + 1
     out = {"updated_at": iso(t), "usage": state.get("usage"), "sessions": sessions,
            "counts": counts, "error": state.get("error"), "host": os.uname().nodename}
+    # iCloud へは「表示が変わったとき」か「前回から一定時間たったとき」だけ書き出す。
+    # ツールを使うたびに書き換えると iPhone 側のダウンロードが追いつかなくなるため。
+    sig = export_signature(out)
+    meta = state.get("_icloud") or {}
+    last = parse_time(meta.get("at"))
+    if sig != meta.get("sig") or last is None or (t - last).total_seconds() >= ICLOUD_MIN_INTERVAL:
+        wrote = False
+        for d in ICLOUD_DIRS:
+            if os.path.isdir(d):
+                try:
+                    write_in_place(os.path.join(d, EXPORT_NAME), out)
+                    wrote = True
+                except Exception:
+                    pass
+        if wrote:
+            state["_icloud"] = {"sig": sig, "at": iso(t)}
     atomic_write(STATE, state)
-    for d in ICLOUD_DIRS:
-        if os.path.isdir(d):
-            try:
-                atomic_write(os.path.join(d, EXPORT_NAME), out)
-            except Exception:
-                pass
     return out
+
+
+ICLOUD_MIN_INTERVAL = 4 * 60   # 表示が変わらなくても、この間隔を過ぎたら書き出す（古く見えないように）
+
+
+def export_signature(out):
+    """ウィジェットの表示に関係する部分だけ（取得時刻など毎回変わる値は除く）"""
+    u = out.get("usage") or {}
+
+    def win(w):
+        return w and (w.get("pct"), w.get("resets_at"), w.get("label"))
+    sig = {
+        "usage": [win(u.get("five_hour")), win(u.get("seven_day"))] + [win(x) for x in u.get("extra") or []],
+        "sessions": [(s["project"], s["status"], s.get("message")) for s in out.get("sessions") or []],
+        "error": out.get("error"),
+    }
+    return json.dumps(sig, ensure_ascii=False, sort_keys=True)
+
+
+# iCloud の競合を解消する（macOS 標準の JavaScript for Automation で NSFileVersion を使う）。
+# 競合が残ると、iPhone 側で古い版が表示され続けることがある。
+RESOLVE_JXA = r"""
+ObjC.import('Foundation');
+function run(argv) {
+  var url = $.NSURL.fileURLWithPath(argv[0]);
+  var list = $.NSFileVersion.unresolvedConflictVersionsOfItemAtURL(url);
+  var n = (list && !list.isNil()) ? list.count : 0;
+  for (var i = 0; i < n; i++) { list.objectAtIndex(i).resolved = true; }
+  if (n > 0) { $.NSFileVersion.removeOtherVersionsOfItemAtURLError(url, $()); }
+  return String(n);
+}
+"""
+
+
+def resolve_icloud_conflicts():
+    """Mac の今の版を正として、iCloud 上の競合している古い版を片付ける。片付けた数を返す"""
+    total = 0
+    for d in ICLOUD_DIRS:
+        p = os.path.join(d, EXPORT_NAME)
+        if not os.path.exists(p):
+            continue
+        try:
+            r = subprocess.run(["/usr/bin/osascript", "-l", "JavaScript", "-e", RESOLVE_JXA, p],
+                               capture_output=True, text=True, timeout=20)
+            total += int((r.stdout or "0").strip() or 0)
+        except Exception:
+            pass
+    return total
+
+
+def write_in_place(path, data):
+    """iCloud のファイルは置き換えず、同じファイルに上書きする（iCloud から見て同じファイルの更新になる）"""
+    text = json.dumps(data, ensure_ascii=False, indent=1)
+    with open(path, "w") as f:
+        f.write(text)
 
 
 def update_usage(usage=None, error=None, error_only_if_stale=False):
@@ -337,6 +402,7 @@ def ssl_context():
 
 
 def cmd_poll():
+    resolve_icloud_conflicts()
     tok, err = read_token()
     if not tok and err == EXPIRED_MSG and refresh_via_cli():
         tok, err = read_token()
@@ -470,7 +536,7 @@ def fmt_left(t):
         return ""
     s = int((r - now()).total_seconds())
     if s <= 0:
-        return "まもなくリセット"
+        return "リセット済み"
     d, s = divmod(s, 86400)
     h, s = divmod(s, 3600)
     m = s // 60

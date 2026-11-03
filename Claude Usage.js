@@ -25,12 +25,25 @@ const REMAIN = param.includes("残り") || param.toLowerCase().includes("remain"
 
 let loadError = "";
 
+function readCache(local, cache) {
+  try {
+    if (local.fileExists(cache)) return JSON.parse(local.readString(cache));
+  } catch (e) {}
+  return null;
+}
+
+function timeOf(d) {
+  const t = d && d.updated_at ? new Date(d.updated_at).getTime() : 0;
+  return isNaN(t) ? 0 : t;
+}
+
 async function loadData() {
   const icloud = FileManager.iCloud();
   const local = FileManager.local();
   const dir = icloud.documentsDirectory();
   const path = icloud.joinPath(dir, "claude-status.json");
   const cache = local.joinPath(local.documentsDirectory(), "claude-status-cache.json");
+  const cached = readCache(local, cache);
   try {
     // まだダウンロードされていないファイルは「.claude-status.json.icloud」として見えることがある
     const names = icloud.listContents(dir);
@@ -41,27 +54,34 @@ async function loadData() {
     const text = icloud.readString(path);
     if (!text) throw new Error("データを読めませんでした（ダウンロード中）");
     const data = JSON.parse(text);
+    // iPhone に古い版しか届いていないときは、前に読めた新しい方を使う
+    if (cached && timeOf(cached) > timeOf(data)) return cached;
     local.writeString(cache, text);
     return data;
   } catch (e) {
     loadError = e.message || String(e);
   }
   // 読めなかったときは、前回読めたデータを表示する
-  try {
-    if (local.fileExists(cache)) return JSON.parse(local.readString(cache));
-  } catch (e) {}
-  return null;
+  return cached;
+}
+
+// リセット時刻を過ぎた枠は、使用量 0% として扱う（Mac が止まっていて古いデータのとき）
+function usedOf(w) {
+  if (!w || typeof w.pct !== "number") return null;
+  if (w.resets_at && new Date(w.resets_at) <= new Date()) return 0;
+  return w.pct;
 }
 
 function pctOf(w) {
-  if (!w || typeof w.pct !== "number") return null;
-  return REMAIN ? Math.max(0, 100 - w.pct) : w.pct;
+  const u = usedOf(w);
+  if (u === null) return null;
+  return REMAIN ? Math.max(0, 100 - u) : u;
 }
 
 function left(iso) {
   if (!iso) return "";
   let s = Math.floor((new Date(iso) - new Date()) / 1000);
-  if (s <= 0) return "まもなく";
+  if (s <= 0) return "リセット済み";
   const d = Math.floor(s / 86400); s -= d * 86400;
   const h = Math.floor(s / 3600); s -= h * 3600;
   const m = Math.floor(s / 60);
@@ -132,7 +152,7 @@ function windowColumn(parent, title, win, width, big = 32) {
   row.addSpacer(2);
   addText(row, "%", Math.round(big * 0.45), SUB);
   c.addSpacer(4);
-  const img = c.addImage(barImage(win ? win.pct : 0, width));
+  const img = c.addImage(barImage(usedOf(win) || 0, width));
   img.imageSize = new Size(width, 5);
   c.addSpacer(4);
   addText(c, win && win.resets_at ? `↻ ${left(win.resets_at)}` : " ", 11, SUB);
@@ -266,6 +286,8 @@ async function build() {
       w.addSpacer(4);
     }
     if (data.error) { w.addSpacer(4); addText(w, "⚠︎ " + data.error, 10, WARN); }
+    // iCloud から読めず前回のデータを表示しているときは、理由を小さく出す
+    if (loadError) { w.addSpacer(2); addText(w, "⚠︎ 前回のデータを表示中：" + loadError, 10, WARN); }
     w.addSpacer();
   } else {
     // medium: 稼働中のセッションがあればClaude Code、なければ追加の上限（Fable週など）
@@ -276,7 +298,17 @@ async function build() {
   return w;
 }
 
-const widget = await build();
-if (config.runsInWidget) Script.setWidget(widget);
-else await widget.presentMedium();
-Script.complete();
+// ショートカット（オートメーション）から実行されたときは、画面を出さずにデータだけ更新する。
+// アプリで開いたときと同じように iCloud から最新のデータを取り込み、ウィジェット用に保存する。
+if (config.runsWithSiri) {
+  const d = await loadData();
+  const u = (d && d.usage) || {};
+  const f = pctOf(u.five_hour), w7 = pctOf(u.seven_day);
+  Script.setShortcutOutput(d ? `Claude 5時間 ${f === null ? "-" : Math.round(f)}% / 週間 ${w7 === null ? "-" : Math.round(w7)}%` : "データがまだありません");
+  Script.complete();
+} else {
+  const widget = await build();
+  if (config.runsInWidget) Script.setWidget(widget);
+  else await widget.presentMedium();
+  Script.complete();
+}

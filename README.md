@@ -35,6 +35,13 @@ curl -fsSL https://raw.githubusercontent.com/shikumake/claude-usage-widget/main/
    - Parameter に「残り」と入れると、残りの％で表示します（空欄なら使用量）。
    - ロック画面（長方形・円形）にも置けます。
 
+### 3. 自動更新を設定する（おすすめ）
+ホーム画面のウィジェットは、iOS の都合で新しいデータを取り込めず、古い表示のままになることがあります。「ショートカット」アプリのオートメーションで、よく開くアプリ（LINE・X・Safari など）を開いたときに裏でデータを取り込むようにしておくと、いつも新しい表示になります。
+
+1. 「ショートカット」→「オートメーション」→「＋」→ きっかけに「App」を選び、よく開くアプリの「開いている」を選ぶ
+2. アクションに Scriptable の「**Run Script**」を追加し、Script に「Claude Usage」を選ぶ
+3. 「Run In App」と「実行時に表示」をオフ、「すぐに実行」を選び、「実行時に通知」をオフ
+
 ### メニューバー表示（任意）
 [SwiftBar](https://github.com/swiftbar/SwiftBar) が入っていれば、メニューバーに使用量と稼働中のセッションを表示します。Homebrew がある場合は、インストール中に導入するか聞かれます。
 
@@ -67,7 +74,7 @@ curl -fsSL https://raw.githubusercontent.com/shikumake/claude-usage-widget/main/
 | 「使用量の取得に失敗: URLError」 | 通常はインストーラが対処します。直らない場合は Issue で教えてください |
 | iPhone に「データがまだありません」 | Scriptable アプリで「Claude Usage」を一度タップして実行し、ウィジェットを置き直してください |
 | Scriptable の iCloud フォルダがない | Mac と iPhone の iCloud Drive をオンにして、iPhone で Scriptable を開いてから、インストーラを再実行してください |
-| ウィジェットの数値が古い | Mac がスリープ中は更新されません。古いときは右上に最終更新の時刻が赤字で出ます |
+| ウィジェットの数値が古い | Mac がスリープ中は更新されません。Mac が起きているのに古いままなら、Scriptable アプリを一度開くと新しくなります。毎回開かなくて済むよう「3. 自動更新を設定する」をおすすめします |
 
 状態の確認：
 ```bash
